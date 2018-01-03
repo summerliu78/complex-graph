@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>探索手机号标签</title>
+
+<!-- ~~~~~~~~~~~~~~~~~引入css和js文件~~~~~~~~~~~~~~~~~~ -->
+
+<link rel="stylesheet" type="text/css" href="../comm/css/crawlers.css">
+<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<script src="../comm/js/echarts.min.js"></script>
+<script src="../comm/js/functions.js"></script>
+
+<script src="../comm/layer/layer.js"></script>
+
+<!-- ~~~~~~~~~~~~~~~~ script脚本 ~~~~~~~~~~~~~~~~~~~~~ -->
+
+<script type="text/javascript">
+
+$(document).ready(function(){
+
+	$("#select_force_crawl").click(function(){
+		// var base_url = "http://10.1.5.62:9999/crawl?run_type=1";
+		var base_url = "http://10.1.5.62:9999/mobile_tag?run_type=1";
+		layer.confirm('确定重爬？', {icon: 3, title:'提示'}, function(index){
+		  run_main(base_url);
+		  layer.close(index);
+		});
+	});
+
+	$("#select_run").click(function(){
+		// var base_url = "http://10.1.5.62:9999/crawl?run_type=0";
+		var base_url = "http://10.1.5.62:9999/mobile_tag?run_type=0";
+		run_main(base_url);
+	});
+
+	function run_main(base_url){
+		var input = $(".select_text_input").val();
+		if (input=="") {
+			layer.msg("请输入手机号!");
+			return
+		};
+		if (input.length != 11) {
+			layer.msg("请输入正确的手机号！");
+			return
+		};
+		if (input[0] != "1") {
+			layer.msg("请输入正确的手机号！");
+			return
+		};
+		$("#content").html("");
+
+		var scrawl_list = {
+			1:{
+				"scrawl_type":"sougou",
+				"website_name":"搜狗号码通",
+				"image_src":"../comm/images/sougou_mobile.png"},
+			2:{
+				"scrawl_type":"dianhuabang",
+				"website_name":"电话邦",
+				"image_src":"../comm/images/dianhuabang.png"}
+		};
+
+		var tip = 0;
+		function run_scrawl(){
+			tip += 1;
+			if (tip in scrawl_list) {
+
+				var html = [];
+				html.push('<div class="content">');
+				html.push('<div class="content_image">');
+				html.push('<img src="'+scrawl_list[tip].image_src+'" width="100%" height="100%">');
+				html.push('</div>');
+				html.push('<div class="content_text">');
+				html.push('<div class="content_text_sub">');
+				html.push('<span class="content_text_sub_1">测试工具:</span>');
+				html.push('<span class="content_text_sub_2">'+scrawl_list[tip].website_name+'</span>');
+				html.push('<span class="content_text_sub_3">电话标签:</span>');
+				html.push('<span class="content_text_sub_4" id="content_text_sub_4_'+tip+'">正在爬取中...</span>');
+				html.push('</div>');
+				html.push('<div class="content_text_sub">');
+				html.push('<span class="content_text_sub_5">测试工具URL:</span>');
+				html.push('<span class="content_text_sub_6" id="content_text_sub_6_'+tip+'"></span>');
+				html.push('</div>');
+				html.push('<div class="content_text_sub">');
+				html.push('<span class="content_text_sub_7">最近一次成功爬取时间:</span>');
+				html.push('<span class="content_text_sub_8" id="content_text_sub_8_'+tip+'"></span>');
+				html.push('<span class="content_text_sub_9">手机号:</span>');
+				html.push('<span class="content_text_sub_10">'+input+'</span>');
+				html.push('</div>');
+				html.push('</div>');
+				html.push('<div class="content_test_code" id="content_test_code_'+tip+'">');
+				html.push('</div>');
+				html.push('</div>');
+				$("#content").append(html.join(""));
+
+
+				var url = base_url + "&crawl_type="+scrawl_list[tip].scrawl_type+"&mobile="+input;
+
+				$.get(url = url, function(result){
+
+					$("#content_text_sub_4_"+tip).html(result.tag);
+					if (result.state=="OK") {
+						$("#content_text_sub_4_"+tip).css("color","#5FB878");
+						$("#content_text_sub_4_"+tip).css("font-weight","bold");
+					};
+					if (result.message=="FAIL") {
+						$("#content_text_sub_4_"+tip).css("color","#F7B824");
+						$("#content_text_sub_4_"+tip).css("font-weight","bold");
+					};
+					$("#content_text_sub_6_"+tip).html(result.url);
+					$("#content_text_sub_8_"+tip).html(result.create_time);
+
+					if (result.state == 'OK') {
+						$("#content_test_code_"+tip).html('<span class="content_test_code_ok">爬取成功！</span>');
+					};
+					if (result.state == 'FAIL') {
+						$("#content_test_code_"+tip).html('<span class="content_test_code_fail">爬取失败！</span>');
+					};
+					if (result.state == 'need_test_code') {
+						var html = [];
+						html.push('<span class="content_test_dode_1">自动识别验证码失败!</span>');
+						html.push('<span class="content_test_dode_2">请手动输入验证码:</span>');
+						html.push('<span class="content_code_img"></span>');
+						html.push('<input class="content_code_text" type="text" name="test_code">');
+						html.push('<button class="content_code_button">提交</button>');
+						$("#content_test_code_"+tip).html(html.join(""));
+					};
+					run_scrawl();
+				});
+			}else{
+				var html_bottom = [];
+				html_bottom.push('<div class="bottom">');
+				html_bottom.push('全部网站已验证完成!');
+				html_bottom.push('</div>');
+				$("#content").append(html_bottom.join(""));
+			};
+
+
+		};
+		run_scrawl();
+	};
+});
+
+</script>
+</head>
+
+
+<body>
+
+<div id="select">
+	<label class="select_text_title">手机号:</label>
+	<input type="text" class="select_text_input" placeholder="请输入手机号">
+	<button class="select_run" id="select_run">探索</button>
+	<button class="select_force_crawl" id="select_force_crawl">强制重爬</button>
+</div>
+
+<div id="content">
+<!-- 	<div class="content">
+		<div class="content_image">
+			<img src="../images/lakala.png" width="100%" height="100%">
+		</div>
+		<div class="content_text">
+			<div class="content_text_sub">
+				<span class="content_text_sub_1">网站名称:</span>
+				<span class="content_text_sub_2">拉卡啦</span>
+				<span class="content_text_sub_3">爬取状态:</span>
+				<span class="content_text_sub_4">爬取状态异常,请联系开发人员!</span>
+			</div>
+			<div class="content_text_sub">
+				<span class="content_text_sub_5">网站验证URL:</span>
+				<span class="content_text_sub_6">www.baidu.com/?asdfaajl&akjsflaj&fasdf</span>
+			</div>
+			<div class="content_text_sub">
+				<span class="content_text_sub_7">最近一次成功爬取时间:</span>
+				<span class="content_text_sub_8">2017-07-09 12:33:33</span>
+				<button class="content_text_sub_button">重新爬取</button>
+			</div>
+		</div>
+		<div class="content_test_code">
+			<span class="content_test_dode_1">自动识别验证码失败!</span>
+			<span class="content_test_dode_2">请手动输入验证码:</span>
+			<span class="content_code_img"></span>
+			<input class="content_code_text" type="text" name="test_code">
+			<button class="content_code_button">提交</button>
+			<span class="content_test_code_ok">爬取成功！</span>
+			<span class="content_test_code_fail">爬取失败,请联系开发人员！</span>
+		</div>
+	</div>
+
+	<div class="content">
+		<div class="content_image">
+			<img src="../images/lakala.png" width="100%" height="100%">
+		</div>
+		<div class="content_text">
+			<div class="content_text_sub">
+				<span class="content_text_sub_1">网站名称:</span>
+				<span class="content_text_sub_2">拉卡啦</span>
+				<span class="content_text_sub_3">爬取状态:</span>
+				<span class="content_text_sub_4">爬取状态异常,请联系开发人员!</span>
+			</div>
+			<div class="content_text_sub">
+				<span class="content_text_sub_5">网站验证URL:</span>
+				<span class="content_text_sub_6">www.baidu.com/?asdfaajl&akjsflaj&fasdf</span>
+			</div>
+			<div class="content_text_sub">
+				<span class="content_text_sub_7">最近一次成功爬取时间:</span>
+				<span class="content_text_sub_8">2017-07-09 12:33:33</span>
+				<button class="content_text_sub_button">重新爬取</button>
+			</div>
+		</div>
+		<div class="content_test_code">
+			<span class="content_test_dode_1">自动识别验证码失败!</span>
+			<span class="content_test_dode_2">请手动输入验证码:</span>
+			<span class="content_code_img"></span>
+			<input class="content_code_text" type="text" name="test_code">
+			<button class="content_code_button">提交</button>
+		</div>
+	</div>
+
+	<div class="bottom">
+		全部网站已验证完成!
+	</div> -->
+	<span class="content_main_text">请输入手机号码，然后点击探索按钮！</span>
+</div>
+
+
+
+</body>
+</html>

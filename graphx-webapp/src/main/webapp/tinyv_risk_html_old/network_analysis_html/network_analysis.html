@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>复杂网络分析页面</title>
+
+<!-- ~~~~~~~~~~~~~~~~~引入css和js文件~~~~~~~~~~~~~~~~~~ -->
+
+<link rel="stylesheet" type="text/css" href="../comm/css/network_analysis.css">
+<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<script src="../comm/jqueryui/jquery-ui.js"></script>
+<link href="../comm/jqueryui/jquery-ui.css" rel="stylesheet">
+<script src="../comm/js/echarts.min.js"></script>
+<script src="../comm/js/functions.js"></script>
+
+<script src="../comm/layer/layer.js"></script>
+
+<!-- ~~~~~~~~~~~~~~~~ script脚本 ~~~~~~~~~~~~~~~~~~~~~ -->
+
+<script type="text/javascript">
+
+$(document).ready(function(){
+
+	function main(graph){
+		var categories = [];
+		var table = {};
+
+		// 存放手机号为键，属性为值的字典；
+		var explore_dict = {};
+
+		graph.nodes.forEach(function (node) {
+		    node.itemStyle = null;//
+		    node.symbolSize = node.size;//强制指定节点的大小   
+		    // Use random x, y
+		    node.x = node.y = null;
+		    node.draggable = true;
+
+		    categories[node.category] = {"name":node.category_name}
+		    table[node.id] = node;
+
+		    explore_dict[node.id] = node.attributes;
+		});
+
+
+		// 生成表格  alert(table[i].id);
+		var html = [];
+		html.push('<table class="table-1">');
+		html.push('<thead>');
+		html.push('<tr class="table_1_thread">');
+		html.push('<th>手机号</th>');
+		html.push('<th>用户名</th>');
+		html.push('<th>身份证号</th>');
+		html.push('<th>同盾分</th>');
+		html.push('<th>蜜罐分</th>');
+		html.push('<th>申请授信时间</th>');
+		html.push('<th>度</th>');
+		html.push('<th>是否新发现</th>');
+		html.push('<th>详细</th>');
+		html.push('</tr>');
+		html.push('</thead>');
+		html.push('<tbody>');
+
+		graph.nodes.forEach(function(node){
+			html.push('<tr>');
+			html.push('<td>'+node.id+'</td>');
+			html.push('<td>'+node.attributes.user_name+'</td>');
+			html.push('<td>'+node.attributes.user_id_num+'</td>');
+			html.push('<td>'+node.attributes.td_score+'</td>');
+			html.push('<td>'+node.attributes.mg_score+'</td>');
+			html.push('<td>'+node.attributes.applay_credit_time+'</td>');
+			html.push('<td>'+node.attributes.degree+'</td>');
+			html.push('<td>'+node.attributes.is_new+'</td>');
+			html.push('<td><span name="'+node.id+'" class = "mouse_hover" style="color:#61A0A8;font-weight: bolder;">鼠标移至此处</span></td>');
+			html.push('</tr>');
+		});
+
+		html.push('</tbody></table>');
+		html.push('</table>');
+		$("#result_table").html(html.join(""));
+
+
+		$(".mouse_hover").hover(function(){
+			$(this).css("color","#3F9F00");
+			var mobile = $(this).attr("name");
+
+			html = [];
+			html.push('<tr>');
+			html.push('<td class="alert_table_item">手机号：</td>');
+			html.push('<td>'+mobile+'</td>');
+			html.push('<td class="alert_table_item">用户名：</td>');
+			html.push('<td>'+explore_dict[mobile].user_name+'</td>');
+			html.push('</tr>');
+
+			html.push('<tr>');
+			html.push('<td class="alert_table_item">身份证号：</td>');
+			html.push('<td>'+explore_dict[mobile].user_id_num+'</td>');
+			html.push('<td class="alert_table_item">同盾分：</td>');
+			html.push('<td>'+explore_dict[mobile].td_score+'</td>');
+			html.push('</tr>');
+
+			html.push('<tr>');
+			html.push('<td class="alert_table_item">蜜罐分：</td>');
+			html.push('<td>'+explore_dict[mobile].mg_score+'</td>');
+			html.push('<td class="alert_table_item">申请授信时间：</td>');
+			html.push('<td>'+explore_dict[mobile].applay_credit_time+'</td>');
+			html.push('</tr>');
+
+			html.push('<tr>');
+			html.push('<td class="alert_table_item">度：</td>');
+			html.push('<td>'+explore_dict[mobile].degree+'</td>');
+			html.push('<td class="alert_table_item">地址：</td>');
+			html.push('<td>'+explore_dict[mobile].address+'</td>');
+			html.push('</tr>');
+
+			html.push('<tr>');
+			html.push('<td class="alert_table_item">逾期天数：</td>');
+			html.push('<td>'+explore_dict[mobile].yuqi_days+'</td>');
+			html.push('<td class="alert_table_item">审批状态：</td>');
+			html.push('<td>'+explore_dict[mobile].applay_credit_status+'</td>');
+			html.push('</tr>');
+
+			html.push('<tr>');
+			html.push('<td class="alert_table_item">是否新发现：</td>');
+			html.push('<td>'+explore_dict[mobile].is_new+'</td>');
+			html.push("<td></td>");
+			html.push("<td></td>");
+			html.push('</tr>');
+
+			$("#alert_table").html(html.join(""));
+			show($(this), "alert_table");
+		}, function(){
+			$(this).css("color","#61A0A8");
+			hide($(this), "alert_table");
+		});
+
+
+		var html_image = [];
+		html_image.push('<div id="result_image_content" style="width:100%;height:100%">');
+		html_image.push('</div>');
+		$("#result_image").html(html_image.join(""));
+
+		// 画图，基于准备好的dom，初始化echarts实例;
+		var myChart = echarts.init(document.getElementById('result_image_content'));
+		myChart.hideLoading();
+
+		option = {
+		    title: {
+		        text: '用户通话关系',//文本标题
+		        top: 'bottom',//上下位置  
+		        left: 'right'//左右位置
+		    },
+		    legend: [{
+		        // selectedMode: 'single',
+		        data: categories.map(function (a) {//显示策略
+		            return a.name;
+		        })
+		    }],
+		    animation: true,//是否开启动画
+		    series : [
+		        {
+		            name: '',
+		            type: 'graph',
+		            layout: 'force',
+		            data: graph.nodes,//节点数据
+		            links: graph.links,//节点边数据
+		            categories: categories,//策略
+		            roam: true,//是否开启滚轮缩放和拖拽漫游，默认为false（关闭），其他有效输入为true（开启），'scale'（仅开启滚轮缩放），'move'（仅开启拖拽漫游）
+		            label: {
+		                normal: {
+		                    show:'true',
+		                    position: 'right'
+		                }
+		            },
+		            slient:false,//是否响应点击事件，为false的时候就是响应
+		            force: {
+		                repulsion: 3400
+		            }
+		        }
+		    ]
+		};
+		myChart.setOption(option);
+	};
+
+	function change_image_type(graph){
+		var val = $(".select_change_type_input").val();
+
+		nodes_list = [];
+		category_dict = {};
+		tip = 0;
+		graph.nodes.forEach(function(node){
+			if(!category_dict.hasOwnProperty(node.attributes[val])){
+				category_dict[node.attributes[val]] = tip;
+				tip += 1;
+			};
+
+			node["category"] = category_dict[node.attributes[val]];
+			node["category_name"] = node.attributes[val];
+
+			nodes_list.push(node);
+		});
+
+		graph["nodes"] = nodes_list;
+		main(graph);
+
+
+		// 绑定鼠标拖动事件
+		function rebind_resizeable(){
+			$("#result_image").resizable({ 
+				stop:function(event, ui) {
+					change_image_type(graph);
+					$("#result_image").resizable("destroy");
+					rebind_resizeable();
+				},
+				handles: 's'
+			});
+		};
+		rebind_resizeable();
+		
+	};
+
+
+	$(".select_button").click(function(){
+		if ($.trim($(".select_text_input").val()) == "") {
+			layer.msg("请输入手机号！");
+			return
+		};
+		if ($.trim($(".select_text_input").val()).length != 11) {
+			layer.msg("请输入正确的手机号！");
+			return
+		};
+		if ($.trim($(".select_text_input").val())[0] != "1") {
+			layer.msg("请输入正确的手机号！");
+			return
+		};
+
+		var select_type = $(".select_type_input").val();
+		var select_text = $.trim($(".select_text_input").val());
+
+		var get_url = "http://10.1.5.20:1235/graphx-webapp/webapi/gangs/number/"
+		get_url = get_url + select_text;
+
+		// var get_url = "http://localhost:9999/crawl?run_type=1";
+
+		$("#result_image").html('<span class="result_image_text">数据加载中，请稍候...</span>');
+		$(".select_button").attr({"disabled":"disabled"});
+
+		var ajaxTimeOut = $.ajax({
+			type:"get",
+			url:get_url,
+			timeout:10000,
+			dataType:'json',
+			success:function(result){ //请求成功的回调函数
+
+// var result = {"links":[{"source":"18888667844","target":"18302586494"},{"source":"18888667844","target":"18798767552"},{"source":"18888667844","target":"18798888513"},{"source":"15285185827","target":"15685138342"},{"source":"15284674546","target":"18212796685"},{"source":"18798767552","target":"15117440428"},{"source":"18798767552","target":"18302586494"},{"source":"18798767552","target":"18798888513"},{"source":"18798767552","target":"18888667844"},{"source":"18798767552","target":"18212796685"},{"source":"18798767552","target":"18798738207"},{"source":"15685138342","target":"15285185827"},{"source":"15685138342","target":"18758372561"},{"source":"15685138342","target":"18302586494"},{"source":"15685138342","target":"18798888513"},{"source":"18798888513","target":"18302586494"},{"source":"18798888513","target":"18798767552"},{"source":"18798888513","target":"18758372561"},{"source":"18798888513","target":"18888667844"},{"source":"18758372561","target":"18798888513"},{"source":"18758372561","target":"18302586494"},{"source":"18758372561","target":"18798767552"},{"source":"18758372561","target":"15685138342"},{"source":"18212796685","target":"18798767552"},{"source":"18212796685","target":"15284674546"},{"source":"18302586494","target":"18798767552"},{"source":"18302586494","target":"18798888513"},{"source":"18302586494","target":"18888667844"},{"source":"18798738207","target":"18798767552"},{"source":"15117440428","target":"18798767552"}],"message":"OK","nodes":[{"attributes":{"address":"贵州省六盘水市水城县","applay_credit_status":"拒绝授信-可30天后重申","degree":"6","is_new":"非新发现","mg_score":"-","sex":"男","td_score":"23.00","user_id_num":"520221199505190977","user_name":"李建"},"category_name":"非新发现","id":"15117440428","name":"15117440428","size":6},{"attributes":{"address":"贵州省毕节地区织金县","applay_credit_status":"已授信","applay_credit_time":"2017-04-19 16:04:09.0","degree":"6","is_new":"非新发现","mg_score":"-","sex":"男","td_score":"63.00","user_id_num":"522425199709293933","user_name":"缪军","yuqi_days":"0"},"category_name":"非新发现","id":"15285185827","name":"15285185827","size":6},{"attributes":{"address":"贵州省毕节地区大方县","applay_credit_status":"已授信","applay_credit_time":"2017-04-21 19:59:35.0","degree":"18","is_new":"非新发现","mg_score":"-","sex":"男","td_score":"46.00","user_id_num":"522422199901292018","user_name":"武四波","yuqi_days":"0"},"category_name":"非新发现","id":"18758372561","name":"18758372561","size":18},{"attributes":{"address":"贵州省毕节地区金沙县","applay_credit_status":"拒绝授信-可30天后重申","degree":"6","is_new":"非新发现","mg_score":"-","sex":"男","td_score":"58.00","user_id_num":"522424199711263630","user_name":"聂恒"},"category_name":"非新发现","id":"15284674546","name":"15284674546","size":6},{"attributes":{"address":"贵州省毕节地区大方县","applay_credit_status":"已授信","applay_credit_time":"2017-04-04 14:59:22.0","degree":"18","is_new":"非新发现","mg_score":"-","sex":"男","td_score":"117.00","user_id_num":"522422199802092053","user_name":"武城","yuqi_days":"0"},"category_name":"非新发现","id":"18888667844","name":"18888667844","size":18},{"attributes":{"address":"贵州省毕节地区大方县","applay_credit_status":"已授信","applay_credit_time":"2017-04-05 15:26:17.0","degree":"27","is_new":"非新发现","mg_score":"-","sex":"男","td_score":"105.00","user_id_num":"522422199602162010","user_name":"武洋","yuqi_days":"0"},"category_name":"非新发现","id":"18798888513","name":"18798888513","size":27},{"attributes":{"address":"贵州省毕节地区毕节市","applay_credit_status":"已授信","applay_credit_time":"2017-04-06 11:09:43.0","degree":"39","is_new":"非新发现","mg_score":"-","sex":"男","td_score":"100.00","user_id_num":"522401199605104834","user_name":"陆燕","yuqi_days":"0"},"category_name":"非新发现","id":"18798767552","name":"18798767552","size":39},{"attributes":{"address":"贵州省毕节地区毕节市","applay_credit_status":"已授信","applay_credit_time":"2017-04-06 12:24:18.0","degree":"6","is_new":"非新发现","mg_score":"-","sex":"男","td_score":"69.00","user_id_num":"522401199804164856","user_name":"陆杰","yuqi_days":"0"},"category_name":"非新发现","id":"18798738207","name":"18798738207","size":6},{"attributes":{"address":"贵州省毕节地区赫章县","applay_credit_status":"已授信","applay_credit_time":"2017-04-05 16:51:39.0","degree":"24","is_new":"非新发现","mg_score":"-","sex":"男","td_score":"66.00","user_id_num":"522428199307210217","user_name":"王怀健","yuqi_days":"0"},"category_name":"非新发现","id":"18302586494","name":"18302586494","size":24},{"attributes":{"address":"贵州省贵阳市修文县","applay_credit_status":"拒绝授信-可30天后重申","degree":"18","is_new":"非新发现","mg_score":"-","sex":"男","td_score":"67.00","user_id_num":"520123199902285838","user_name":"王泽巧"},"category_name":"非新发现","id":"15685138342","name":"15685138342","size":18},{"attributes":{"address":"贵州省毕节地区金沙县","applay_credit_status":"已授信","applay_credit_time":"2017-04-06 13:20:44.0","degree":"12","is_new":"非新发现","mg_score":"-","sex":"男","td_score":"28.00","user_id_num":"522424199412143612","user_name":"王先国","yuqi_days":"0"},"category_name":"非新发现","id":"18212796685","name":"18212796685","size":12}],"status":"OK"};
+
+
+				if (result.status == "NOT_FOUND") {
+					$("#result_image").html('<span class="result_image_text">未发现团伙记录！</span>');
+					$("#result_table").html('');
+					$(".select_button").removeAttr("disabled");
+					$(".select_change_type_input").html("");
+
+					return null
+				};
+				if (result.status == "ERROR") {
+					$("#result_image").html('<span class="result_image_text">服务器错误，请联系管理员！</span>');
+					$("#result_table").html('');
+					$(".select_button").removeAttr("disabled");
+					$(".select_change_type_input").html("");
+
+					return null
+				};
+
+
+				var html = [];
+				html.push('<option value="address">归属地</option>');
+				html.push('<option value="sex">性别</option>');
+				html.push('<option value="applay_credit_status">信审状态</option>');
+				html.push('<option value="is_new">是否新发现</option>');
+				$(".select_change_type_input").html(html.join(""));
+
+
+				var graph = result;
+
+				$('.select_change_type_input').unbind("change");
+				$(".select_change_type_input").change(function(){
+					change_image_type(graph);
+				});
+
+				change_image_type(graph);
+				$(".select_button").removeAttr("disabled");	
+		　　},
+			complete : function(XMLHttpRequest,status){ //请求完成后最终执行参数
+		　　　　if(status=='timeout'){//超时,status还有success,error等值的情况
+		 　　　　　 ajaxTimeOut.abort(); //取消请求
+		　　　　　  $("#result_image").html('<span class="result_image_text">请求超时！</span>');
+					$("#result_table").html('');
+					$(".select_button").removeAttr("disabled");
+		　　　　};
+		　　}
+		});
+	});
+});
+		
+</script>
+</head>
+
+
+<body>
+
+<div id="select">
+	<span class="select_type">检索类型:</span>
+	<select class="select_type_input">
+		<option value="user_mobile">手机号</option>
+	</select>
+
+	<span class="select_text">号码:</span>
+	<input type="text" class="select_text_input" placeholder="在这里输入">
+
+	<button class="select_button">查询</button>
+
+	<select class="select_change_type_input">
+	</select>
+	<span class="select_change_type">切换图表类型:</span>
+</div>
+
+
+<div id="result_image">
+	<span class="result_image_text">请在输入框内输入用户手机号，然后点查询按钮！</span>
+</div>
+
+<div id="select_2">
+	<span class="select_type_2">节点属性</span>
+</div>
+
+<div id="result_table">
+</div>
+
+
+<table id="alert_table">
+	<tr>
+		<td class="alert_table_item">第1条</td>
+		<td>内</td>
+		<td class="alert_table_item">第2条</td>
+		<td>内</td>
+	</tr>
+	<tr>
+		<td class="alert_table_item">第3条</td>
+		<td>内</td>
+		<td class="alert_table_item">第4条</td>
+		<td>内</td>
+	</tr>
+	<tr>
+		<td class="alert_table_item"></td>
+		<td></td>
+		<td class="alert_table_item"></td>
+		<td></td>
+	</tr>
+	<tr>
+		<td class="alert_table_item"></td>
+		<td></td>
+		<td class="alert_table_item"></td>
+		<td></td>
+	</tr>
+	<tr>
+		<td class="alert_table_item"></td>
+		<td></td>
+		<td class="alert_table_item"></td>
+		<td></td>
+	</tr>
+</table>
+
+</body>
+</html>
